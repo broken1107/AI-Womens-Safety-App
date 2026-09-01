@@ -59,7 +59,7 @@ void main() async {
   final sosProvider = SosProvider(apiClient: apiClient, sosService: sosService);
   final incidentProvider = IncidentProvider(apiClient: apiClient, incidentService: incidentService);
   final connectivityProvider = ConnectivityProvider(connectivityService: connectivityService);
-  final settingsProvider = SettingsProvider();
+  final settingsProvider = SettingsProvider(apiClient: apiClient);
 
   runApp(
     MultiProvider(

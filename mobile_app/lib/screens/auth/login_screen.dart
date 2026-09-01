@@ -34,23 +34,54 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     FocusScope.of(context).unfocus();
     final auth = context.read<AuthProvider>();
+    final password = _passwordController.text;
+
     try {
       final result = await loginWithProvider(
         auth,
         email: _emailController.text.trim(),
-        password: _passwordController.text,
+        password: password,
         rememberMe: _rememberMe,
       );
+
+      // Securely clear password from field memory immediately
+      _passwordController.clear();
+
       if (!mounted) return;
+
+      if (result is Map) {
+        final isOtpRequired = result['otp_required'] == true;
+        final challengeId = result['login_challenge_id']?.toString();
+
+        if (isOtpRequired && challengeId != null) {
+          final availableMethods = (result['available_methods'] as List?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              ['email'];
+
+          Navigator.of(context).pushNamed(
+            '/otp-method',
+            arguments: {
+              'login_challenge_id': challengeId,
+              'available_methods': availableMethods,
+              'masked_email': result['masked_email']?.toString(),
+              'masked_phone': result['masked_phone']?.toString(),
+            },
+          );
+          return;
+        }
+      }
+
       if (providerOperationSucceeded(result, auth)) {
         Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
       } else {
         _showMessage(
-          providerErrorMessage(auth) ?? 'Unable to sign in. Please try again.',
+          providerErrorMessage(auth) ?? 'Unable to sign in. Please check your credentials.',
         );
       }
     } catch (_) {
       if (mounted) {
+        _passwordController.clear();
         _showMessage(
           providerErrorMessage(auth) ??
               'Unable to sign in. Check your connection and try again.',

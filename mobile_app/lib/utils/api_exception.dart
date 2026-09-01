@@ -43,8 +43,8 @@ class ApiException implements Exception {
         error.type == DioExceptionType.connectionTimeout ||
             error.type == DioExceptionType.sendTimeout ||
             error.type == DioExceptionType.receiveTimeout
-        ? 'The request timed out. Check your connection and try again.'
-        : 'Unable to reach the server. Check your internet connection.';
+        ? 'The request timed out. Ensure the backend server is running and check your connection settings.'
+        : 'Unable to reach the server. Check your internet connection or verify the server IP in Settings.';
 
     return ApiException(
       message:

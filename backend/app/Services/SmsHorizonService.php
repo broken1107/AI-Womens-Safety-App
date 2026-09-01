@@ -202,6 +202,19 @@ class SmsHorizonService
     }
 
     /**
+     * Send a 6-digit login verification OTP via SMSHorizon.
+     *
+     * @param string $phoneNumber
+     * @param string $otp
+     * @return array
+     */
+    public function sendOtpSms(string $phoneNumber, string $otp): array
+    {
+        $message = "Your AI Women's Safety App login OTP is {$otp}. This OTP will expire in 5 minutes. Do not share it with anyone.";
+        return $this->sendSms($phoneNumber, $message);
+    }
+
+    /**
      * Clean and normalize Indian mobile phone numbers (10 digits).
      *
      * @param string $phone

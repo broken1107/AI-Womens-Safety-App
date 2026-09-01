@@ -6,8 +6,103 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_strings.dart';
 import '../../providers/settings_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final TextEditingController _urlController = TextEditingController();
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  void _showServerConfigDialog(BuildContext context, SettingsProvider settings) {
+    _urlController.text = settings.serverBaseUrl;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Backend Server URL'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Select your environment or enter your computer\'s IP address:',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _urlController,
+                decoration: const InputDecoration(
+                  labelText: 'API Base URL',
+                  hintText: 'http://127.0.0.1:8000/api/',
+                  prefixIcon: Icon(Icons.dns_rounded),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text('Quick Presets:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ActionChip(
+                    avatar: const Icon(Icons.usb_rounded, size: 16),
+                    label: const Text('USB Phone (127.0.0.1)'),
+                    onPressed: () {
+                      _urlController.text = 'http://127.0.0.1:8000/api/';
+                    },
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.phone_android_rounded, size: 16),
+                    label: const Text('Emulator (10.0.2.2)'),
+                    onPressed: () {
+                      _urlController.text = 'http://10.0.2.2:8000/api/';
+                    },
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.wifi_rounded, size: 16),
+                    label: const Text('Wi-Fi LAN (192.168.7.51)'),
+                    onPressed: () {
+                      _urlController.text = 'http://192.168.7.51:8000/api/';
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                '💡 Note for USB phones: Run `adb reverse tcp:8000 tcp:8000` in your terminal.\n💡 Note for Wi-Fi: Start Laravel with `php artisan serve --host=0.0.0.0 --port=8000`.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final newUrl = _urlController.text.trim();
+              if (newUrl.isNotEmpty) {
+                await settings.setServerBaseUrl(newUrl);
+              }
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            child: const Text('Save URL'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +115,98 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          // Section: Backend Server & Network
+          _buildSectionHeader(context, 'Backend Server & Network'),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.cloud_sync_rounded, color: AppColors.primary),
+                  title: const Text('API Server Endpoint'),
+                  subtitle: Text(
+                    settings.serverBaseUrl,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  trailing: const Icon(Icons.edit_rounded, size: 20),
+                  onTap: () => _showServerConfigDialog(context, settings),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: settings.isTestingConnection
+                                  ? null
+                                  : () => settings.testServerConnection(),
+                              icon: settings.isTestingConnection
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.network_check_rounded),
+                              label: Text(settings.isTestingConnection ? 'Testing...' : 'Test Server Connection'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (settings.lastConnectionTest != null) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: settings.lastConnectionTest!.success
+                                ? AppColors.success.withValues(alpha: 0.12)
+                                : AppColors.sosRed.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: settings.lastConnectionTest!.success
+                                  ? AppColors.success
+                                  : AppColors.sosRed,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                settings.lastConnectionTest!.success
+                                    ? Icons.check_circle_rounded
+                                    : Icons.error_outline_rounded,
+                                color: settings.lastConnectionTest!.success
+                                    ? AppColors.success
+                                    : AppColors.sosRed,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  settings.lastConnectionTest!.message,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: settings.lastConnectionTest!.success
+                                        ? AppColors.success
+                                        : AppColors.sosRed,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
           // Section: Appearance
           _buildSectionHeader(context, 'Appearance & Display'),
           Card(

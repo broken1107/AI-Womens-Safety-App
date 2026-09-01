@@ -19,6 +19,9 @@ use App\Http\Controllers\Api\NotificationController;
 // Public Authentication
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/send-login-otp', [AuthController::class, 'sendLoginOtp']);
+Route::post('/verify-login-otp', [AuthController::class, 'verifyLoginOtp']);
+Route::post('/resend-login-otp', [AuthController::class, 'resendLoginOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 
 // Protected APIs (Laravel Sanctum)

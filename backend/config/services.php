@@ -51,4 +51,12 @@ return [
         'template_id' => env('SMSHORIZON_TEMPLATE_ID', null),
         'mock' => env('SMSHORIZON_MOCK', false),
     ],
+
+    'brevo' => [
+        'api_key' => env('BREVO_API_KEY', ''),
+        'sender_email' => env('BREVO_SENDER_EMAIL', 'no-reply@safetyguardian.app'),
+        'sender_name' => env('BREVO_SENDER_NAME', "AI Women's Safety App"),
+        'api_url' => env('BREVO_API_URL', 'https://api.brevo.com/v3/smtp/email'),
+        'mock' => env('BREVO_MOCK', false),
+    ],
 ];

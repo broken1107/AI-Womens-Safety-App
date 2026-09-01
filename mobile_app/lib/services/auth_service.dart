@@ -19,6 +19,51 @@ class AuthService {
     return asJsonMap(response.data);
   }
 
+  Future<Map<String, dynamic>> requestLogin({
+    required String email,
+    required String password,
+  }) => login(email: email, password: password);
+
+  Future<Map<String, dynamic>> sendLoginOtp({
+    required String loginChallengeId,
+    required String method,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndpoints.sendLoginOtp,
+      data: {
+        'login_challenge_id': loginChallengeId,
+        'method': method,
+      },
+    );
+    return asJsonMap(response.data);
+  }
+
+  Future<Map<String, dynamic>> verifyLoginOtp({
+    required String loginChallengeId,
+    required String otp,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndpoints.verifyLoginOtp,
+      data: {
+        'login_challenge_id': loginChallengeId,
+        'otp': otp,
+      },
+    );
+    return asJsonMap(response.data);
+  }
+
+  Future<Map<String, dynamic>> resendLoginOtp({
+    required String loginChallengeId,
+  }) async {
+    final response = await apiClient.post(
+      ApiEndpoints.resendLoginOtp,
+      data: {
+        'login_challenge_id': loginChallengeId,
+      },
+    );
+    return asJsonMap(response.data);
+  }
+
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
