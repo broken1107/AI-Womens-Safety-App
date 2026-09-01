@@ -2,6 +2,9 @@ abstract final class ApiEndpoints {
   // Authentication & Session
   static const String register = 'register';
   static const String login = 'login';
+  static const String sendLoginOtp = 'send-login-otp';
+  static const String verifyLoginOtp = 'verify-login-otp';
+  static const String resendLoginOtp = 'resend-login-otp';
   static const String verifyOtp = 'verify-otp';
   static const String logout = 'logout';
 

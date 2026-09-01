@@ -53,6 +53,15 @@ class ApiClient {
 
   Dio get dio => _dio;
 
+  void setBaseUrl(String newUrl) {
+    var formatted = newUrl.trim();
+    if (!formatted.endsWith('/')) {
+      formatted = '$formatted/';
+    }
+    _dio.options.baseUrl = formatted;
+    AppConfig.setRuntimeApiBaseUrl(formatted);
+  }
+
   Future<Response<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,

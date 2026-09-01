@@ -27,6 +27,70 @@ Future<dynamic> loginWithProvider(
   }
 }
 
+Future<dynamic> sendLoginOtpWithProvider(
+  dynamic provider, {
+  required String loginChallengeId,
+  required String method,
+}) async {
+  try {
+    return await provider.sendLoginOtp(
+      loginChallengeId: loginChallengeId,
+      method: method,
+    );
+  } on NoSuchMethodError {
+    try {
+      return await provider.sendLoginOtp(loginChallengeId, method);
+    } on NoSuchMethodError {
+      return null;
+    }
+  }
+}
+
+Future<dynamic> verifyLoginOtpWithProvider(
+  dynamic provider, {
+  required String loginChallengeId,
+  required String otp,
+  bool rememberMe = true,
+}) async {
+  try {
+    return await provider.verifyLoginOtp(
+      loginChallengeId: loginChallengeId,
+      otp: otp,
+      rememberMe: rememberMe,
+    );
+  } on NoSuchMethodError {
+    try {
+      return await provider.verifyLoginOtp(
+        loginChallengeId: loginChallengeId,
+        otp: otp,
+      );
+    } on NoSuchMethodError {
+      try {
+        return await provider.verifyLoginOtp(loginChallengeId, otp);
+      } on NoSuchMethodError {
+        return null;
+      }
+    }
+  }
+}
+
+Future<dynamic> resendLoginOtpWithProvider(
+  dynamic provider, {
+  required String loginChallengeId,
+}) async {
+  try {
+    return await provider.resendLoginOtp(
+      loginChallengeId: loginChallengeId,
+    );
+  } on NoSuchMethodError {
+    try {
+      return await provider.resendLoginOtp(loginChallengeId);
+    } on NoSuchMethodError {
+      return null;
+    }
+  }
+}
+
 Future<dynamic> registerWithProvider(
   dynamic provider, {
   required String name,

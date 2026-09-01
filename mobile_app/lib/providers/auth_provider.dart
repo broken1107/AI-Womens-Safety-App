@@ -28,6 +28,14 @@ class AuthProvider extends ChangeNotifier {
   bool _isRestoring = true;
   bool _isOnboardingComplete = false;
 
+  // Login Challenge State
+  String? _loginChallengeId;
+  List<String> _availableMethods = [];
+  String? _maskedEmail;
+  String? _maskedPhone;
+  String? _selectedMethod;
+  String? _maskedDestination;
+
   User? get currentUser => _currentUser;
   Map<String, dynamic>? get user => _currentUser?.toJson();
   String? get token => _token;
@@ -36,6 +44,13 @@ class AuthProvider extends ChangeNotifier {
   bool get isRestoring => _isRestoring;
   bool get isAuthenticated => _token != null && _token!.isNotEmpty;
   bool get isOnboardingComplete => _isOnboardingComplete;
+
+  String? get loginChallengeId => _loginChallengeId;
+  List<String> get availableMethods => _availableMethods;
+  String? get maskedEmail => _maskedEmail;
+  String? get maskedPhone => _maskedPhone;
+  String? get selectedMethod => _selectedMethod;
+  String? get maskedDestination => _maskedDestination;
 
   Future<void> restoreSession() async {
     _isRestoring = true;
@@ -122,7 +137,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> login({
+  /// Initiates login: validates email + password and receives login challenge.
+  Future<Map<String, dynamic>?> login({
     required String email,
     required String password,
     bool rememberMe = true,
@@ -130,6 +146,22 @@ class AuthProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       final result = await _authService.login(email: email, password: password);
+
+      final isOtpRequired = result['otp_required'] == true;
+      final challengeId = asNullableString(result['login_challenge_id']);
+
+      if (isOtpRequired && challengeId != null) {
+        _loginChallengeId = challengeId;
+        _availableMethods = (result['available_methods'] as List?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            ['email'];
+        _maskedEmail = asNullableString(result['masked_email']);
+        _maskedPhone = asNullableString(result['masked_phone']);
+        notifyListeners();
+        return result;
+      }
+
       final token = asNullableString(result['access_token']) ?? asNullableString(result['token']);
       final userMap = asJsonMap(result['user'] ?? result['data']);
 
@@ -140,13 +172,79 @@ class AuthProvider extends ChangeNotifier {
           await _persistSession();
         }
       }
+      return result;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return null;
+    } catch (_) {
+      _errorMessage = 'Login failed. Please verify credentials and network connection.';
+      notifyListeners();
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Sends OTP via chosen channel ('email' or 'sms').
+  Future<Map<String, dynamic>?> sendLoginOtp({
+    required String loginChallengeId,
+    required String method,
+  }) async {
+    _setLoading(true);
+    try {
+      final result = await _authService.sendLoginOtp(
+        loginChallengeId: loginChallengeId,
+        method: method,
+      );
+      _selectedMethod = method;
+      _maskedDestination = asNullableString(result['masked_destination']);
+      notifyListeners();
+      return result;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return null;
+    } catch (_) {
+      _errorMessage = 'Unable to send verification code. Please try again.';
+      notifyListeners();
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Verifies 6-digit login OTP and creates authenticated session.
+  Future<bool> verifyLoginOtp({
+    required String loginChallengeId,
+    required String otp,
+    bool rememberMe = true,
+  }) async {
+    _setLoading(true);
+    try {
+      final result = await _authService.verifyLoginOtp(
+        loginChallengeId: loginChallengeId,
+        otp: otp,
+      );
+
+      final token = asNullableString(result['access_token']) ?? asNullableString(result['token']);
+      final userMap = asJsonMap(result['user'] ?? result['data']);
+
+      if (token != null && token.isNotEmpty) {
+        _token = token;
+        _currentUser = userMap.isNotEmpty ? User.fromJson(userMap) : null;
+        if (rememberMe) {
+          await _persistSession();
+        }
+      }
+      _clearLoginChallenge();
       return true;
     } on ApiException catch (e) {
       _errorMessage = e.message;
       notifyListeners();
       return false;
     } catch (_) {
-      _errorMessage = 'Login failed. Please verify credentials and network connection.';
+      _errorMessage = 'OTP verification failed. Please try again.';
       notifyListeners();
       return false;
     } finally {
@@ -154,6 +252,32 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Resends login OTP using previously chosen channel.
+  Future<Map<String, dynamic>?> resendLoginOtp({
+    required String loginChallengeId,
+  }) async {
+    _setLoading(true);
+    try {
+      final result = await _authService.resendLoginOtp(
+        loginChallengeId: loginChallengeId,
+      );
+      _maskedDestination = asNullableString(result['masked_destination']);
+      notifyListeners();
+      return result;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return null;
+    } catch (_) {
+      _errorMessage = 'Unable to resend verification code. Please try again.';
+      notifyListeners();
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Legacy / Registration OTP verification.
   Future<bool> verifyOtp({
     required String email,
     required String otp,
@@ -221,6 +345,15 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  void _clearLoginChallenge() {
+    _loginChallengeId = null;
+    _availableMethods = [];
+    _maskedEmail = null;
+    _maskedPhone = null;
+    _selectedMethod = null;
+    _maskedDestination = null;
+  }
+
   Future<void> _persistSession() async {
     await _secureStorage.write(key: StorageKeys.authToken, value: _token);
     final prefs = await SharedPreferences.getInstance();
@@ -233,6 +366,7 @@ class AuthProvider extends ChangeNotifier {
     _token = null;
     _currentUser = null;
     _errorMessage = null;
+    _clearLoginChallenge();
     await _secureStorage.delete(key: StorageKeys.authToken);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(StorageKeys.cachedUser);

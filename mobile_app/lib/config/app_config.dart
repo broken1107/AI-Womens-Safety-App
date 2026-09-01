@@ -5,6 +5,13 @@ abstract final class AppConfig {
   static const String _envApiBaseUrl =
       String.fromEnvironment('API_BASE_URL');
 
+  static String _runtimeApiBaseUrl = '';
+
+  /// Set a runtime custom API Base URL (e.g. from Settings or SharedPreferences)
+  static void setRuntimeApiBaseUrl(String url) {
+    _runtimeApiBaseUrl = url.trim();
+  }
+
   /// Base URL for the Laravel REST API backend.
   ///
   /// Physical Android device connected through USB:
@@ -13,7 +20,16 @@ abstract final class AppConfig {
   ///
   /// Android Emulator:
   ///   http://10.0.2.2:8000/api/
+  ///
+  /// Wi-Fi Local Network (LAN):
+  ///   `http://127.0.0.1:8000/api/`
   static String get apiBaseUrl {
+    if (_runtimeApiBaseUrl.isNotEmpty) {
+      return _runtimeApiBaseUrl.endsWith('/')
+          ? _runtimeApiBaseUrl
+          : '$_runtimeApiBaseUrl/';
+    }
+
     if (_envApiBaseUrl.isNotEmpty) {
       return _envApiBaseUrl.endsWith('/')
           ? _envApiBaseUrl
@@ -53,13 +69,13 @@ abstract final class AppConfig {
   static const String userAgent =
       'SafetyGuardian-FlutterApp/1.0 (safety_guardian@app.local)';
 
-  // Network Timeouts
+  // Network Timeouts (Extended to 25s for reliable mobile network responses)
   static const Duration connectTimeout =
-      Duration(seconds: 15);
+      Duration(seconds: 25);
 
   static const Duration receiveTimeout =
-      Duration(seconds: 15);
+      Duration(seconds: 25);
 
   static const Duration sendTimeout =
-      Duration(seconds: 15);
+      Duration(seconds: 25);
 }
